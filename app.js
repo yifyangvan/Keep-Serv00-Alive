@@ -1,38 +1,29 @@
+require('dotenv').config();
 const express = require("express");
-const path = require("path");
-const exec = require("child_process").exec;
+const { exec } = require('child_process');
 const app = express();
-const port = 3000;
-
-const user = "Serv00登录用户名"; //此处修改为Serv00的用户名
-const pName = "s5";
-
-app.use(express.static(path.join(__dirname, 'static')));
-
-function keepWebAlive() {
-  const currentDate = new Date();
-  const formattedDate = currentDate.toLocaleDateString();
-  const formattedTime = currentDate.toLocaleTimeString();
-
-  exec(`pgrep -laf ${pName}`, (err, stdout) => {
-    const Process = `/home/${user}/.${pName}/${pName} -c /home/${user}/.${pName}/config.json`;
-
-    if (stdout.includes(Process)) {
-      console.log(`${formattedDate}, ${formattedTime}: Web Running`);
-    } else {
-      exec(`nohup ${Process} >/dev/null 2>&1 &`, (err) => {
+app.use(express.json());
+app.get("/info", function (req, res) {
+    const commandToRun = "cd ~/serv00-play/singbox/ && bash start.sh"
+    exec(commandToRun, function (err, stdout, stderr) {
         if (err) {
-          console.log(`${formattedDate}, ${formattedTime}: Keep alive error: ${err}`);
-        } else {
-          console.log(`${formattedDate}, ${formattedTime}: Keep alive success!`);
+            console.log("命令执行错误:" + err);
+            res.status(500).send("服务器错误");
+            return;
         }
-      });
+        if (stderr) {
+            console.log("命令执行标准错误输出:" + stderr);
+        }
+        console.log("命令执行成功:\n" + stdout);
+    });
+    res.type("html").send("<pre>Serv00 急救中心</pre>");
+});
+app.use((req, res, next) => {
+    if (req.path === '/info') {
+        return next(); 
     }
-  });
-}
-
-setInterval(keepWebAlive, 10 * 1000);
-
-app.listen(port, () => {
-  console.log(`Server is listening on port ${port}!`);
+    res.status(404).send('页面未找到');
+});
+app.listen(3000, () => {
+    console.log("服务器已启动，监听端口 3000");
 });
